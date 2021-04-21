@@ -16,20 +16,31 @@ struct ContentView: View {
     @State private var errorMessage = ""
     @State private var showingError = false
     
+    @State private var score = 0
+    
     var body: some View {
         NavigationView {
             VStack {
                 TextField("Enter your word", text: $newWord, onCommit: addNewWord)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .autocapitalization(.none)
+                    .disableAutocorrection(true)
                     .padding()
                 
                 List(usedWords, id: \.self) {
                     Image(systemName: "\($0.count).circle")
                     Text($0)
                 }
+                .listStyle(InsetListStyle())
+
             }
             .navigationTitle(rootWord)
+            .navigationBarItems(leading: Button("New Word", action: startGame), trailing: Text("\(score) pts")
+                                    .font(.headline)
+                                    .padding(.init(top: 5, leading: 10, bottom: 5, trailing: 10))
+                                    .background(Color.blue)
+                                    .foregroundColor(.white)
+                                    .clipShape(Capsule()))
             .onAppear(perform: startGame)
             
             .alert(isPresented: $showingError, content: {
@@ -63,6 +74,7 @@ struct ContentView: View {
         }
 
         usedWords.insert(answer, at: 0)
+        score += (answer.count + usedWords.count)
         newWord = ""
     }
     
@@ -76,6 +88,9 @@ struct ContentView: View {
 
                 // 4. Pick one random word, or use "silkworm" as a sensible default
                 rootWord = allWords.randomElement() ?? "silkworm"
+                
+                usedWords = [String]()
+                score = 0
 
                 // If we are here everything has worked, so we can exit
                 return
@@ -87,7 +102,7 @@ struct ContentView: View {
     }
     
     func isOriginal(word: String) -> Bool {
-        !usedWords.contains(word)
+        !usedWords.contains(word) && word != rootWord
     }
     
     func isPossible(word: String) -> Bool {
@@ -109,7 +124,7 @@ struct ContentView: View {
         let range = NSRange(location: 0, length: word.utf16.count)
         let misspelledRange = checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: "en")
 
-        return misspelledRange.location == NSNotFound
+        return misspelledRange.location == NSNotFound && word.count >= 3
     }
     
     func wordError(title: String, message: String) {
